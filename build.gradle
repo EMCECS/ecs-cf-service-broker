@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springBootVersion = '2.7.9' // 3.x requires Java 17
+        springBootVersion = '2.7.18' // 3.x requires Java 17
     }
     repositories {
         mavenCentral()
@@ -28,7 +28,7 @@ repositories {
 }
 
 ext {
-    springCloudServiceBrokerVersion = '3.6.0'
+    springCloudServiceBrokerVersion = '3.6.1'
 }
 
 dependencies {
