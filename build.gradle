@@ -31,6 +31,8 @@ repositories {
 ext {
     springCloudServiceBrokerVersion = '3.6.1'
 }
+ext['jackson-bom.version'] = '2.15.2'
+ext['snakeyaml.version'] = '1.33.0.SP1-redhat-00001'
 
 dependencies {
     implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-jersey', version: springBootVersion)
@@ -38,12 +40,6 @@ dependencies {
     implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-actuator', version: springBootVersion)
     implementation(group: 'org.springframework.boot', name: 'spring-boot-devtools', version: springBootVersion)
     implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersion)
-    implementation(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.2')
-    implementation(group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.15.2')
-    implementation(group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.15.2')
-    implementation group: 'org.codehaus.jettison', name: 'jettison', version: '1.5.4'
-    implementation group: 'org.yaml', name: 'snakeyaml', version: '1.33.0.SP1-redhat-00001'
-    implementation group: 'org.springframework', name: 'spring-context', version: '5.3.30'
 
     implementation(group: 'org.springframework.cloud', name: 'spring-cloud-starter-open-service-broker', version: springCloudServiceBrokerVersion) {
         exclude module: "log4j-slf4j-impl"
@@ -60,6 +56,10 @@ dependencies {
     implementation(group: 'com.emc.ecs', name: 'object-client', version: '3.4.5')
     implementation(group: 'com.emc.ecs', name: 'bucket-wipe', version: '2.2.0') {
         exclude module: "log4j-slf4j-impl"
+    }
+
+    constraints {
+        implementation(group: 'org.codehaus.jettison', name: 'jettison', version: '1.5.4')
     }
 
     testImplementation(group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion)
