@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springBootVersion = '2.7.9' // 3.x requires Java 17
+        springBootVersion = '2.7.18' // 3.x requires Java 17
     }
     repositories {
         mavenCentral()
@@ -25,11 +25,14 @@ targetCompatibility = 11
 repositories {
     mavenCentral()
     maven { url "https://repo.spring.io/libs-snapshot" }
+    maven { url "https://maven.repository.redhat.com/earlyaccess/all/" }
 }
 
 ext {
-    springCloudServiceBrokerVersion = '3.6.0'
+    springCloudServiceBrokerVersion = '3.6.1'
 }
+ext['jackson-bom.version'] = '2.15.2'
+ext['snakeyaml.version'] = '1.33.0.SP1-redhat-00001'
 
 dependencies {
     implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-jersey', version: springBootVersion)
@@ -37,11 +40,12 @@ dependencies {
     implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-actuator', version: springBootVersion)
     implementation(group: 'org.springframework.boot', name: 'spring-boot-devtools', version: springBootVersion)
     implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersion)
+
     implementation(group: 'org.springframework.cloud', name: 'spring-cloud-starter-open-service-broker', version: springCloudServiceBrokerVersion) {
         exclude module: "log4j-slf4j-impl"
     }
     implementation(group: 'org.glassfish.jersey.media', name: 'jersey-media-jaxb', version: '2.39')
-    implementation(group: 'com.google.guava', name: 'guava', version: '31.1-jre')
+    implementation(group: 'com.google.guava', name: 'guava', version: '31.1.0.jre-redhat-00005')
     implementation(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36')
     implementation(group: 'ch.qos.logback', name: 'logback-core', version: '1.2.11')
     implementation(group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.11')
@@ -52,6 +56,10 @@ dependencies {
     implementation(group: 'com.emc.ecs', name: 'object-client', version: '3.4.5')
     implementation(group: 'com.emc.ecs', name: 'bucket-wipe', version: '2.2.0') {
         exclude module: "log4j-slf4j-impl"
+    }
+
+    constraints {
+        implementation(group: 'org.codehaus.jettison', name: 'jettison', version: '1.5.4')
     }
 
     testImplementation(group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion)
