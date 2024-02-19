@@ -26,12 +26,13 @@ repositories {
     mavenCentral()
     maven { url "https://repo.spring.io/libs-snapshot" }
     maven { url "https://maven.repository.redhat.com/earlyaccess/all/" }
+    maven { url "https://maven.wso2.org/nexus/content/repositories/public/" }
 }
 
 ext {
     springCloudServiceBrokerVersion = '3.6.1'
 }
-ext['jackson-bom.version'] = '2.15.2'
+ext['jackson-bom.version'] = '2.16.1'
 ext['snakeyaml.version'] = '1.33.0.SP1-redhat-00001'
 
 dependencies {
@@ -47,8 +48,8 @@ dependencies {
     implementation(group: 'org.glassfish.jersey.media', name: 'jersey-media-jaxb', version: '2.39')
     implementation(group: 'com.google.guava', name: 'guava', version: '31.1.0.jre-redhat-00005')
     implementation(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36')
-    implementation(group: 'ch.qos.logback', name: 'logback-core', version: '1.2.11')
-    implementation(group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.11')
+    implementation(group: 'ch.qos.logback', name: 'logback-core', version: '1.4.14')
+    implementation(group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.14')
     implementation(group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.20.0')
     implementation(group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: '2.20.0')
     implementation(group: 'com.sun.jersey.contribs', name: 'jersey-apache-client4', version: '1.19.4')
@@ -60,6 +61,12 @@ dependencies {
 
     constraints {
         implementation(group: 'org.codehaus.jettison', name: 'jettison', version: '1.5.4')
+    }
+
+    dependencyManagement {
+        dependencies {
+            dependency group: 'org.springframework', name: 'spring-beans', version: '5.3.31-wso2v1'
+        }
     }
 
     testImplementation(group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion)
