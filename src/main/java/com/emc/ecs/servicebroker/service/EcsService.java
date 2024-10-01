@@ -912,6 +912,23 @@ public class EcsService implements StorageService {
                 }
             }
         }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> quota = (Map<String, Integer>) parameters.getOrDefault(QUOTA, new HashMap<>());
+        int limit = quota.getOrDefault(QUOTA_LIMIT, -1);
+        int warn = quota.getOrDefault(QUOTA_WARN, -1);
+
+        if (limit == -1 && warn == -1) {
+            logger.info("Removing quota from namespace '{}'", prefix(namespace));
+            NamespaceQuotaAction.delete(connection, prefix(namespace));
+
+            parameters.remove(QUOTA);
+        } else {
+            NamespaceQuotaParam quotaParam = new NamespaceQuotaParam(namespace, limit, warn);
+            logger.info("Updating quota on namespace {}: block size {}, notification limit {}", namespace,
+                    quotaParam.getBlockSize(), quotaParam.getNotificationSize());
+            NamespaceQuotaAction.create(connection, prefix(namespace), quotaParam);
+        }
         return parameters;
     }
 
