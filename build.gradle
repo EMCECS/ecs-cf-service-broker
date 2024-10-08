@@ -34,6 +34,7 @@ ext {
 }
 ext['jackson-bom.version'] = '2.16.1'
 ext['snakeyaml.version'] = '1.33.0.SP1-redhat-00001'
+ext['tomcat.version'] = '9.0.95'
 
 dependencies {
     implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-jersey', version: springBootVersion)
@@ -67,7 +68,8 @@ dependencies {
 
     dependencyManagement {
         dependencies {
-            dependency group: 'org.springframework', name: 'spring-beans', version: '5.3.31-wso2v1'
+            dependency group: 'org.springframework', name: 'spring-beans', version: '5.3.36-wso2v1'
+            dependency group: 'org.springframework', name: 'spring-expression', version: '5.3.36-wso2v1'
         }
     }
 
