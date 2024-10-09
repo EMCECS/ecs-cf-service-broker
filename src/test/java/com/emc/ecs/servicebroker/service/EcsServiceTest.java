@@ -693,6 +693,68 @@ public class EcsServiceTest {
     }
 
     /**
+     * When changing plans from one without a quota to one with a quota the new
+     * quota should be created.
+     *
+     * @throws Exception when mocking fails
+     */
+    @Test
+    public void changeNamespacePlanTestNewQuota() throws Exception {
+        setupUpdateNamespaceTest();
+        setupCreateNamespaceQuotaTest();
+
+        ServiceDefinitionProxy service = namespaceServiceFixture();
+        PlanProxy plan = service.findPlan(NAMESPACE_PLAN_ID2);
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(QUOTA, Map.of(QUOTA_WARN, 4, QUOTA_LIMIT, 5));
+
+        Map<String, Object> serviceSettings = ecs.changeNamespacePlan(NAMESPACE_NAME, service, plan, params);
+        Map<String, Integer> quota = (Map<String, Integer>) serviceSettings.get(QUOTA);
+        assertEquals(4, quota.get(QUOTA_WARN).longValue());
+        assertEquals(5, quota.get(QUOTA_LIMIT).longValue());
+
+
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<NamespaceQuotaParam> quotaParamCaptor = ArgumentCaptor
+                .forClass(NamespaceQuotaParam.class);
+
+        PowerMockito.verifyStatic(NamespaceQuotaAction.class, times(1));
+        NamespaceQuotaAction.create(same(connection), idCaptor.capture(),
+                quotaParamCaptor.capture());
+        assertEquals(PREFIX + NAMESPACE_NAME, idCaptor.getValue());
+        assertEquals(5, quotaParamCaptor.getValue().getBlockSize());
+        assertEquals(4, quotaParamCaptor.getValue().getNotificationSize());
+    }
+
+    /**
+     * When changing plans from one without a quota to one with a quota the new
+     * quota should be created.
+     *
+     * @throws Exception when mocking fails
+     */
+    @Test
+    public void changeNamespacePlanTestNoQuota() throws Exception {
+        setupUpdateNamespaceTest();
+        setupCreateNamespaceQuotaTest();
+
+        ServiceDefinitionProxy service = namespaceServiceFixture();
+        PlanProxy plan = service.findPlan(NAMESPACE_PLAN_ID2);
+
+        Map<String, Object> params = new HashMap<>();
+
+        Map<String, Object> serviceSettings = ecs.changeNamespacePlan(NAMESPACE_NAME, service, plan, params);
+        assertNull(serviceSettings.get(QUOTA));
+
+
+        ArgumentCaptor<String> nsCaptor = ArgumentCaptor.forClass(String.class);
+
+        PowerMockito.verifyStatic(NamespaceQuotaAction.class, times(1));
+        NamespaceQuotaAction.delete(same(connection), nsCaptor.capture());
+        assertEquals(PREFIX + NAMESPACE_NAME, nsCaptor.getValue());
+    }
+
+    /**
      * When changing plans from one with ADO to one without an ADO setting, ADO should not be altered.
      *
      * @throws Exception when mocking fails
@@ -1431,6 +1493,7 @@ public class EcsServiceTest {
     @Test
     public void changeNamespacePlanTest() throws Exception {
         setupUpdateNamespaceTest();
+        setupDeleteNamespaceQuotaTest();
 
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<NamespaceUpdate> updateCaptor = ArgumentCaptor.forClass(NamespaceUpdate.class);
@@ -1573,6 +1636,7 @@ public class EcsServiceTest {
         params.put(DEFAULT_BUCKET_QUOTA, 10);
 
         setupUpdateNamespaceTest();
+        setupDeleteNamespaceQuotaTest();
 
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<NamespaceUpdate> updateCaptor = ArgumentCaptor
@@ -1662,6 +1726,7 @@ public class EcsServiceTest {
 
         setupUpdateNamespaceTest();
         setupCreateNamespaceRetentionTest(false);
+        setupDeleteNamespaceQuotaTest();
 
         ArgumentCaptor<String> nsCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<RetentionClassCreate> createCaptor = ArgumentCaptor
@@ -1696,6 +1761,7 @@ public class EcsServiceTest {
 
         setupUpdateNamespaceTest();
         setupCreateNamespaceRetentionTest(true);
+        setupDeleteNamespaceQuotaTest();
 
         ServiceDefinitionProxy service = namespaceServiceFixture();
         PlanProxy plan = service.findPlan(NAMESPACE_PLAN_ID2);
@@ -1728,6 +1794,7 @@ public class EcsServiceTest {
 
         setupUpdateNamespaceTest();
         setupCreateNamespaceRetentionTest(true);
+        setupDeleteNamespaceQuotaTest();
 
         ArgumentCaptor<String> nsCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> rcCaptor = ArgumentCaptor.forClass(String.class);
@@ -2613,6 +2680,12 @@ public class EcsServiceTest {
         PowerMockito.mockStatic(NamespaceQuotaAction.class);
         PowerMockito.doNothing().when(NamespaceQuotaAction.class, CREATE,
                 same(connection), anyString(), any(NamespaceQuotaParam.class));
+    }
+
+    private void setupDeleteNamespaceQuotaTest() throws Exception {
+        PowerMockito.mockStatic(NamespaceQuotaAction.class);
+        PowerMockito.doNothing().when(NamespaceQuotaAction.class, DELETE,
+                same(connection), anyString());
     }
 
     private void setupCreateNamespaceTest() throws Exception {
