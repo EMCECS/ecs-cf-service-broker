@@ -138,8 +138,10 @@ public class EcsService implements StorageService {
 
             logger.info("Started wipe of bucket '{}' in namespace '{}'", bucketName, namespace);
             BucketWipeResult result = bucketWipeFactory.newBucketWipeResult();
+            bucketWipe.deleteAllMpus(prefix(bucketName), result);
+            bucketWipe.deleteAllVersions(prefix(bucketName), "", result);
             bucketWipe.deleteAllObjects(prefix(bucketName), "", result);
-
+            result.allActionsSubmitted();
             String ns = namespace;
 
             return result.getCompletedFuture().thenRun(() -> bucketWipeCompleted(result, bucketName, ns));
