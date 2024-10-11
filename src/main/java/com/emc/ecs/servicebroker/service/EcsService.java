@@ -23,6 +23,7 @@ import org.springframework.cloud.servicebroker.exception.ServiceBrokerException;
 import org.springframework.cloud.servicebroker.exception.ServiceBrokerInvalidParametersException;
 import org.springframework.cloud.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.springframework.cloud.servicebroker.exception.ServiceInstanceExistsException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -59,6 +60,8 @@ public class EcsService implements StorageService {
     private String objectEndpoint;
 
     @Autowired
+    ApplicationContext applicationContext;
+
     private S3Client s3Client; // Can not Autowire S3Service here as it depends on EcsService(StorageService)
 
     @Override
@@ -101,6 +104,7 @@ public class EcsService implements StorageService {
                 prepareRepository();
                 getS3RepositorySecret();
                 prepareBucketWipe();
+                prepareS3Client();
             } catch (EcsManagementClientException | URISyntaxException e) {
                 logger.error("Failed to initialize ECS service: {}", e.getMessage());
                 throw new ServiceBrokerException(e.getMessage(), e);
@@ -726,6 +730,10 @@ public class EcsService implements StorageService {
 
     protected void prepareBucketWipe() throws URISyntaxException {
         bucketWipe = bucketWipeFactory.getBucketWipe(broker);
+    }
+
+    private void prepareS3Client() {
+        s3Client = applicationContext.getBean(S3Client.class);
     }
 
     private void prepareDefaultReclaimPolicy() {
