@@ -9,6 +9,7 @@ import com.emc.ecs.servicebroker.exception.EcsManagementClientException;
 import com.emc.ecs.servicebroker.model.*;
 import com.emc.ecs.servicebroker.repository.BucketWipeFactory;
 import com.emc.ecs.servicebroker.service.s3.BucketExpirationAction;
+import com.emc.ecs.servicebroker.service.s3.S3Service;
 import com.emc.ecs.servicebroker.service.utils.TagValuesHandler;
 import com.emc.ecs.tool.BucketWipeOperations;
 import com.emc.ecs.tool.BucketWipeResult;
@@ -56,6 +57,9 @@ public class EcsService implements StorageService {
     protected BucketWipeOperations bucketWipe;
 
     private String objectEndpoint;
+
+    @Autowired
+    private S3Service s3Service;
 
     @Override
     public String getObjectEndpoint() {
@@ -138,9 +142,16 @@ public class EcsService implements StorageService {
 
             logger.info("Started wipe of bucket '{}' in namespace '{}'", bucketName, namespace);
             BucketWipeResult result = bucketWipeFactory.newBucketWipeResult();
+
+            if (s3Service.isBucketVersioningEnabled(prefix(bucketName))) {
+                bucketWipe.deleteAllVersions(prefix(bucketName), "", result);
+                logger.info("Deleted all versions of bucket '{}' in namespace '{}'", bucketName, namespace);
+            } else {
+                logger.info("Deleting all objects in bucket '{}' in namespace '{}'", bucketName, namespace);
+                bucketWipe.deleteAllObjects(prefix(bucketName), "", result);
+            }
             bucketWipe.deleteAllMpus(prefix(bucketName), result);
-            bucketWipe.deleteAllVersions(prefix(bucketName), "", result);
-            bucketWipe.deleteAllObjects(prefix(bucketName), "", result);
+
             result.allActionsSubmitted();
             String ns = namespace;
 

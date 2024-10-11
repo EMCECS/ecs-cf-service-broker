@@ -5,6 +5,7 @@ import com.emc.object.s3.S3Client;
 import com.emc.object.s3.S3Exception;
 import com.emc.object.s3.bean.*;
 import com.emc.object.s3.request.ListObjectsRequest;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,4 +103,16 @@ public class S3Service {
         }
         return s3.listObjects(request);
     }
+
+    /**
+     * Returns true if versioning status is set to either enabled or suspended for the bucket.
+     * If versioning status is not set i.e. null then returns false.
+     *
+     * @param bucketName Name of the bucket to check versioning status for.
+     * @return whether versioning is enabled/suspended on the given bucket.
+     */
+    public boolean isBucketVersioningEnabled(String bucketName) {
+        return Objects.nonNull(s3.getBucketVersioning(bucketName).getStatus());
+    }
+
 }
