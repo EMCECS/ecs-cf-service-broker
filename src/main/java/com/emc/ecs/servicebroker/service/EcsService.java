@@ -9,10 +9,10 @@ import com.emc.ecs.servicebroker.exception.EcsManagementClientException;
 import com.emc.ecs.servicebroker.model.*;
 import com.emc.ecs.servicebroker.repository.BucketWipeFactory;
 import com.emc.ecs.servicebroker.service.s3.BucketExpirationAction;
-import com.emc.ecs.servicebroker.service.s3.S3Service;
 import com.emc.ecs.servicebroker.service.utils.TagValuesHandler;
 import com.emc.ecs.tool.BucketWipeOperations;
 import com.emc.ecs.tool.BucketWipeResult;
+import com.emc.object.s3.S3Client;
 import com.emc.object.s3.bean.LifecycleConfiguration;
 import com.emc.object.s3.bean.LifecycleRule;
 import org.slf4j.Logger;
@@ -59,7 +59,7 @@ public class EcsService implements StorageService {
     private String objectEndpoint;
 
     @Autowired
-    private S3Service s3Service;
+    private S3Client s3Client; // Can not Autowire S3Service here as it depends on EcsService(StorageService)
 
     @Override
     public String getObjectEndpoint() {
@@ -143,7 +143,7 @@ public class EcsService implements StorageService {
             logger.info("Started wipe of bucket '{}' in namespace '{}'", bucketName, namespace);
             BucketWipeResult result = bucketWipeFactory.newBucketWipeResult();
 
-            if (s3Service.isBucketVersioningEnabled(prefix(bucketName))) {
+            if (isBucketVersioningEnabled(prefix(bucketName))) {
                 bucketWipe.deleteAllVersions(prefix(bucketName), "", result);
                 logger.info("Deleted all versions of bucket '{}' in namespace '{}'", bucketName, namespace);
             } else {
@@ -159,6 +159,17 @@ public class EcsService implements StorageService {
         } catch (Exception e) {
             throw new ServiceBrokerException(e.getMessage(), e);
         }
+    }
+
+    /**
+     * Returns true if versioning status is set to either enabled or suspended for the bucket.
+     * If versioning status is not set i.e. null then returns false.
+     *
+     * @param bucketName Name of the bucket to check versioning status for.
+     * @return whether versioning is enabled/suspended on the given bucket.
+     */
+    public boolean isBucketVersioningEnabled(String bucketName) {
+        return Objects.nonNull(s3Client.getBucketVersioning(bucketName).getStatus());
     }
 
     @Override

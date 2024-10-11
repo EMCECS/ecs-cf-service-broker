@@ -104,15 +104,4 @@ public class S3Service {
         return s3.listObjects(request);
     }
 
-    /**
-     * Returns true if versioning status is set to either enabled or suspended for the bucket.
-     * If versioning status is not set i.e. null then returns false.
-     *
-     * @param bucketName Name of the bucket to check versioning status for.
-     * @return whether versioning is enabled/suspended on the given bucket.
-     */
-    public boolean isBucketVersioningEnabled(String bucketName) {
-        return Objects.nonNull(s3.getBucketVersioning(bucketName).getStatus());
-    }
-
 }
