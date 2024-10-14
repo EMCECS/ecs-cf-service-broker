@@ -62,7 +62,7 @@ public class EcsService implements StorageService {
     @Autowired
     ApplicationContext applicationContext;
 
-    private S3Client s3Client; // Can not Autowire S3Service here as it depends on EcsService(StorageService)
+    private S3Client s3Client; // Can not use S3Service here as it depends on this class (EcsService)
 
     @Override
     public String getObjectEndpoint() {
