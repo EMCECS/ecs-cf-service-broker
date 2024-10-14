@@ -14,7 +14,10 @@ import com.emc.ecs.servicebroker.repository.BucketWipeFactory;
 import com.emc.ecs.servicebroker.service.s3.BucketExpirationAction;
 import com.emc.ecs.tool.BucketWipeOperations;
 import com.emc.ecs.tool.BucketWipeResult;
+import com.emc.object.s3.S3Client;
 import com.emc.object.s3.bean.LifecycleRule;
+import com.emc.object.s3.bean.VersioningConfiguration;
+import com.emc.object.s3.bean.VersioningConfiguration.Status;
 import org.apache.commons.collections.CollectionUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -31,6 +35,7 @@ import org.springframework.cloud.servicebroker.exception.ServiceBrokerException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationContext;
 
 import static com.emc.ecs.common.Fixtures.*;
 import static com.emc.ecs.servicebroker.model.Constants.*;
@@ -84,6 +89,9 @@ public class EcsServiceTest {
 
     @Mock
     private BucketWipeFactory bucketWipeFactory;
+
+    @Mock
+    private ApplicationContext applicationContext;
 
     @Autowired
     @InjectMocks
@@ -465,6 +473,10 @@ public class EcsServiceTest {
         when(bucketWipeResult.getCompletedFuture()).thenReturn(wipeCompletableFuture);
         when(bucketWipeFactory.newBucketWipeResult()).thenReturn(bucketWipeResult);
 
+        S3Client s3Client = Mockito.mock(S3Client.class);
+        when(applicationContext.getBean(S3Client.class)).thenReturn(s3Client);
+        when(s3Client.getBucketVersioning(anyString())).thenReturn(new VersioningConfiguration());
+
         // Re-initialize EcsService with the new BucketWipeFactory
         ecs.initialize();
 
@@ -492,8 +504,77 @@ public class EcsServiceTest {
         ArgumentCaptor<String> idCaptor2 = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> pfCaptor2 = ArgumentCaptor.forClass(String.class);
 
-        // Verify that bucket wipe was called
+        // Verify that call to delete all objects is made
         verify(bucketWipeOperations).deleteAllObjects(idCaptor2.capture(), pfCaptor2.capture(), any());
+        // Verify that call to delete all mpus is made
+        verify(bucketWipeOperations).deleteAllMpus(idCaptor2.capture(), any());
+
+        assertEquals(PREFIX + BUCKET_NAME, idCaptor2.getValue());
+        assertEquals("", pfCaptor2.getValue());
+
+        // Verify that Delete Bucket was called
+        PowerMockito.verifyStatic(BucketAction.class, times(1));
+        ArgumentCaptor<String> idCaptor3 = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> nsCaptor3 = ArgumentCaptor.forClass(String.class);
+
+        BucketAction.delete(same(connection), idCaptor3.capture(), nsCaptor3.capture());
+        assertEquals(PREFIX + BUCKET_NAME, idCaptor3.getValue());
+    }
+
+    @Test
+    public void wipeBucketWithObjectVersionsTest() throws Exception {
+        setupInitTest();
+        when(broker.getObjectEndpoint()).thenReturn(OBJ_ENDPOINT);
+
+        BucketWipeOperations bucketWipeOperations = mock(BucketWipeOperations.class);
+        doNothing().when(bucketWipeOperations).deleteAllObjects(any(), any(), any());
+
+        when(bucketWipeFactory.getBucketWipe(any(BrokerConfig.class))).thenReturn(bucketWipeOperations);
+
+        // Setup bucket wipe with a CompletableFuture that never returns
+        CompletableFuture<Boolean> wipeCompletableFuture = new CompletableFuture<>();
+        BucketWipeResult bucketWipeResult = mock(BucketWipeResult.class);
+        when(bucketWipeResult.getCompletedFuture()).thenReturn(wipeCompletableFuture);
+        when(bucketWipeFactory.newBucketWipeResult()).thenReturn(bucketWipeResult);
+
+        S3Client s3Client = Mockito.mock(S3Client.class);
+        when(applicationContext.getBean(S3Client.class)).thenReturn(s3Client);
+        VersioningConfiguration versioningConfiguration = new VersioningConfiguration();
+        versioningConfiguration.setStatus(Status.Enabled);
+        when(s3Client.getBucketVersioning(anyString())).thenReturn(versioningConfiguration);
+
+        // Re-initialize EcsService with the new BucketWipeFactory
+        ecs.initialize();
+
+        // Setup Action Static mocks
+        PowerMockito.mockStatic(BucketAction.class);
+        setupBucketExistsTest();
+        setupBucketAclTest();
+        setupBucketGetTest();
+        setupBucketDeleteTest();
+
+        // Perform Test
+        ecs.wipeAndDeleteBucket(BUCKET_NAME, NAMESPACE_NAME);
+
+        // Verify that Bucket Exists Was called correctly
+        PowerMockito.verifyStatic(BucketAction.class, times(1));
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> nsCaptor = ArgumentCaptor.forClass(String.class);
+
+        BucketAction.exists(same(connection), idCaptor.capture(), nsCaptor.capture());
+        assertEquals(PREFIX + BUCKET_NAME, idCaptor.getValue());
+
+        // Complete the Delete operation
+        wipeCompletableFuture.complete(true);
+
+        ArgumentCaptor<String> idCaptor2 = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> pfCaptor2 = ArgumentCaptor.forClass(String.class);
+
+        // Verify that call to delete all object versions is made
+        verify(bucketWipeOperations).deleteAllVersions(idCaptor2.capture(), pfCaptor2.capture(), any());
+        // Verify that call to delete all mpus is made
+        verify(bucketWipeOperations).deleteAllMpus(idCaptor2.capture(), any());
+
         assertEquals(PREFIX + BUCKET_NAME, idCaptor2.getValue());
         assertEquals("", pfCaptor2.getValue());
 
