@@ -12,6 +12,7 @@ import com.emc.ecs.servicebroker.service.s3.BucketExpirationAction;
 import com.emc.ecs.servicebroker.service.utils.TagValuesHandler;
 import com.emc.ecs.tool.BucketWipeOperations;
 import com.emc.ecs.tool.BucketWipeResult;
+import com.emc.object.s3.S3Client;
 import com.emc.object.s3.bean.LifecycleConfiguration;
 import com.emc.object.s3.bean.LifecycleRule;
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ import org.springframework.cloud.servicebroker.exception.ServiceBrokerException;
 import org.springframework.cloud.servicebroker.exception.ServiceBrokerInvalidParametersException;
 import org.springframework.cloud.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.springframework.cloud.servicebroker.exception.ServiceInstanceExistsException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -56,6 +58,11 @@ public class EcsService implements StorageService {
     protected BucketWipeOperations bucketWipe;
 
     private String objectEndpoint;
+
+    @Autowired
+    ApplicationContext applicationContext;
+
+    private S3Client s3Client; // Can not use S3Service here as it depends on this class (EcsService)
 
     @Override
     public String getObjectEndpoint() {
@@ -97,6 +104,7 @@ public class EcsService implements StorageService {
                 prepareRepository();
                 getS3RepositorySecret();
                 prepareBucketWipe();
+                prepareS3Client();
             } catch (EcsManagementClientException | URISyntaxException e) {
                 logger.error("Failed to initialize ECS service: {}", e.getMessage());
                 throw new ServiceBrokerException(e.getMessage(), e);
@@ -128,24 +136,45 @@ public class EcsService implements StorageService {
         if (namespace == null) {
             namespace = broker.getNamespace();
         }
+        String prefixedBucketName = prefix(bucketName);
         try {
-            if (!namespaceExists(namespace) || !bucketExists(prefix(bucketName), namespace)) {
-                logger.info("Bucket '{}' no longer exists in '{}', assume already deleted", bucketName, namespace);
+            if (!namespaceExists(namespace) || !bucketExists(prefixedBucketName, namespace)) {
+                logger.info("Bucket '{}' no longer exists in '{}', assume already deleted", prefixedBucketName, namespace);
                 return null;
             }
 
             addUserToBucket(bucketName, namespace, broker.getRepositoryUser());
 
-            logger.info("Started wipe of bucket '{}' in namespace '{}'", bucketName, namespace);
+            logger.info("Started wipe of bucket '{}' in namespace '{}'", prefixedBucketName, namespace);
             BucketWipeResult result = bucketWipeFactory.newBucketWipeResult();
-            bucketWipe.deleteAllObjects(prefix(bucketName), "", result);
 
+            if (isBucketVersioningEnabled(prefixedBucketName)) {
+                logger.info("Deleting all objects and versions in bucket '{}' in namespace '{}'", prefixedBucketName, namespace);
+                bucketWipe.deleteAllVersions(prefixedBucketName, "", result);
+            } else {
+                logger.info("Deleting all objects in bucket '{}' in namespace '{}'", prefixedBucketName, namespace);
+                bucketWipe.deleteAllObjects(prefixedBucketName, "", result);
+            }
+            bucketWipe.deleteAllMpus(prefixedBucketName, result);
+
+            result.allActionsSubmitted();
             String ns = namespace;
 
             return result.getCompletedFuture().thenRun(() -> bucketWipeCompleted(result, bucketName, ns));
         } catch (Exception e) {
             throw new ServiceBrokerException(e.getMessage(), e);
         }
+    }
+
+    /**
+     * Returns true if versioning status is set to either enabled or suspended for the bucket.
+     * If versioning status is not set i.e. null then returns false.
+     *
+     * @param bucketName Name of the bucket to check versioning status for.
+     * @return whether versioning is enabled/suspended on the given bucket.
+     */
+    public boolean isBucketVersioningEnabled(String bucketName) {
+        return Objects.nonNull(s3Client.getBucketVersioning(bucketName).getStatus());
     }
 
     @Override
@@ -704,6 +733,10 @@ public class EcsService implements StorageService {
         bucketWipe = bucketWipeFactory.getBucketWipe(broker);
     }
 
+    private void prepareS3Client() {
+        s3Client = applicationContext.getBean(S3Client.class);
+    }
+
     private void prepareDefaultReclaimPolicy() {
         String defaultReclaimPolicy = broker.getDefaultReclaimPolicy();
         if (defaultReclaimPolicy != null) {
@@ -911,6 +944,23 @@ public class EcsService implements StorageService {
                     NamespaceRetentionAction.create(connection, prefix(namespace), new RetentionClassCreate(entry.getKey(), entry.getValue()));
                 }
             }
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> quota = (Map<String, Integer>) parameters.getOrDefault(QUOTA, new HashMap<>());
+        int limit = quota.getOrDefault(QUOTA_LIMIT, -1);
+        int warn = quota.getOrDefault(QUOTA_WARN, -1);
+
+        if (limit == -1 && warn == -1) {
+            logger.info("Removing quota from namespace '{}'", prefix(namespace));
+            NamespaceQuotaAction.delete(connection, prefix(namespace));
+
+            parameters.remove(QUOTA);
+        } else {
+            NamespaceQuotaParam quotaParam = new NamespaceQuotaParam(namespace, limit, warn);
+            logger.info("Updating quota on namespace {}: block size {}, notification limit {}", namespace,
+                    quotaParam.getBlockSize(), quotaParam.getNotificationSize());
+            NamespaceQuotaAction.create(connection, prefix(namespace), quotaParam);
         }
         return parameters;
     }
