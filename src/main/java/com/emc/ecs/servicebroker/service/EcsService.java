@@ -136,25 +136,26 @@ public class EcsService implements StorageService {
         if (namespace == null) {
             namespace = broker.getNamespace();
         }
+        String prefixedBucketName = prefix(bucketName);
         try {
-            if (!namespaceExists(namespace) || !bucketExists(prefix(bucketName), namespace)) {
-                logger.info("Bucket '{}' no longer exists in '{}', assume already deleted", bucketName, namespace);
+            if (!namespaceExists(namespace) || !bucketExists(prefixedBucketName, namespace)) {
+                logger.info("Bucket '{}' no longer exists in '{}', assume already deleted", prefixedBucketName, namespace);
                 return null;
             }
 
             addUserToBucket(bucketName, namespace, broker.getRepositoryUser());
 
-            logger.info("Started wipe of bucket '{}' in namespace '{}'", bucketName, namespace);
+            logger.info("Started wipe of bucket '{}' in namespace '{}'", prefixedBucketName, namespace);
             BucketWipeResult result = bucketWipeFactory.newBucketWipeResult();
 
-            if (isBucketVersioningEnabled(prefix(bucketName))) {
-                bucketWipe.deleteAllVersions(prefix(bucketName), "", result);
-                logger.info("Deleted all versions of bucket '{}' in namespace '{}'", bucketName, namespace);
+            if (isBucketVersioningEnabled(prefixedBucketName)) {
+                logger.info("Deleting all objects and versions in bucket '{}' in namespace '{}'", prefixedBucketName, namespace);
+                bucketWipe.deleteAllVersions(prefixedBucketName, "", result);
             } else {
-                logger.info("Deleting all objects in bucket '{}' in namespace '{}'", bucketName, namespace);
-                bucketWipe.deleteAllObjects(prefix(bucketName), "", result);
+                logger.info("Deleting all objects in bucket '{}' in namespace '{}'", prefixedBucketName, namespace);
+                bucketWipe.deleteAllObjects(prefixedBucketName, "", result);
             }
-            bucketWipe.deleteAllMpus(prefix(bucketName), result);
+            bucketWipe.deleteAllMpus(prefixedBucketName, result);
 
             result.allActionsSubmitted();
             String ns = namespace;
