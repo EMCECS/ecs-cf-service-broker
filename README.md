@@ -44,7 +44,7 @@ To build, make sure you have a Java 11 runtime environment, and use Gradle.
 The service broker supports a number of configuration parameters that are available as environment variables or through
 Spring configuration.  All parameters are prefixed with the `broker-config.` string.  Default parameters point to the
 bundled ECS simulator.  For more info, check the
-[example config](https://github.com/codedellemc/ecs-cf-service-broker/blob/master/src/test/resources/application-test.yml).
+[example config](https://github.com/emcecs/ecs-cf-service-broker/blob/master/src/test/resources/application-test.yml).
 
 | Parameter          | Default Value  | Required | Description                                        |
 | ------------------ |:--------------:| -------- | -------------------------------------------------- |
@@ -94,7 +94,7 @@ When connecting to Objectscale, Service Broker requires different set of paramet
 
 The ECS Simulator is helpful for ensuring that the application starts up, without actually having an ECS cluster
 accessible.  You'll find the
-[simulator in the test-suite](https://github.com/thecodeteam/ecs-cf-service-broker/tree/master/src/test/java/com/emc/ecs/management/simulator/Server.java).
+[simulator in the test-suite](https://github.com/emcecs/ecs-cf-service-broker/tree/master/src/test/java/com/emc/ecs/management/simulator/Server.java).
 Just run this file as a Java program, and the broker will be able to initialize against the
 "mocked" API calls.
 
@@ -118,8 +118,8 @@ to Cloud Foundry.
 
 #### Install using the PCF Tile
 
-Download the [ECS Service Broker tile from Tanzu Network](https://network.pivotal.io/products/ecs-service-broker/), and
-and follow the [installation instructions](https://docs.pivotal.io/partners/ecs-service-broker/installing.html) found there.
+Download the [ECS Service Broker tile from Broadcom Support portal](https://support.broadcom.com/group/ecx/productdownloads?subfamily=ECS%20Service%20Broker%20for%20VMware%20Tanzu), and
+and follow the [installation instructions](https://emcecs.github.io/ecs-broker-tile/installing.html) found there.
 
 #### End-user Broker Usage
 
@@ -159,7 +159,7 @@ Service plan can be changed using `update-service` command. Only a subset of ser
 * Namespaces: bucket quota, retention policies, ADO, compliance and domain group admins 
 
 More detailed instructions for using the broker in Cloud Foundry can be found in the
-[Tanzu Network ECS broker documentation](https://docs.pivotal.io/partners/ecs-service-broker/using.html).
+[ECS broker documentation](https://emcecs.github.io/ecs-broker-tile/usage.html).
 
 ### Broker Catalog and Plan Configuration
 
@@ -217,7 +217,7 @@ Details about bucket tagging could be found below in _Bucket Tags_ section
 Details about search metadata definition are described below in _Search metadata_ section 
 
 For more info, check the
-[example config](https://github.com/thecodeteam/ecs-cf-service-broker/blob/master/src/test/resources/application-test.yml).
+[example config](https://github.com/emcecs/ecs-cf-service-broker/blob/master/src/test/resources/application-test.yml).
 
 ### Broker security
 
@@ -426,6 +426,29 @@ search-metadata:
 ...
 ```
 
+### Reclaim policies while deleting bucket service instances
+
+Reclaim policy decides what happens when a bucket service instance is deleted.
+
+By default reclaim policy is set to `Fail`. Below is a list of supported reclaim policies:
+
+| Reclaim Policy | Description                                                                           |
+|:---------------|:--------------------------------------------------------------------------------------|
+| Fail           | Attempt to delete bucket but fail with error if the bucket isn't empty                |
+| Delete         | Delete all objects and versions (if versioning is enabled) before deleting the bucket |
+| Detach         | Delete the service instance but leave the bucket as is                                |
+
+#### Override the reclaim policy
+
+Reclaim policy can be overridden while creating or updating the service instance by providing additional configuration parameters in following format:
+
+```json
+{
+  "reclaim-policy":"Delete",
+  "allowed-reclaim-policies":"Delete,Detach,Fail"
+}
+```
+
 ### Bucket Tags
 
 When specified in service definition or in request parameters, tags are defined with the following format: `{tags:[{"key": <str>,"value": <str>}, ...]}`
@@ -464,7 +487,7 @@ Tag Placeholders usage example:
 
 Local test suite can be run with either a live ECS platform, or using the included simulator.  Configuration variables
 can be found and/or changed via the
-[EcsActionTest class](https://github.com/thecodeteam/ecs-cf-service-broker/blob/master/src/test/java/com/emc/ecs/common/EcsActionTest.java).
+[EcsActionTest class](https://github.com/emcecs/ecs-cf-service-broker/blob/master/src/test/java/com/emc/ecs/common/EcsActionTest.java).
 
 You can then run the test-suite with gradle:
 
@@ -474,4 +497,4 @@ You can then run the test-suite with gradle:
 
 ## TODOs
 
-Up to date tasks are on our [Github issues](https://github.com/thecodeteam/ecs-cf-service-broker/issues) page.
+Up to date tasks are on our [Github issues](https://github.com/emcecs/ecs-cf-service-broker/issues) page.
