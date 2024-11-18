@@ -72,6 +72,7 @@ dependencies {
             dependency group: 'org.springframework', name: 'spring-beans', version: springFrameworkVersion
             dependency group: 'org.springframework', name: 'spring-expression', version: springFrameworkVersion
             dependency group: 'org.springframework', name: 'spring-aop', version: springFrameworkVersion
+            dependency group: 'org.springframework', name: 'spring-context', version: springFrameworkVersion
         }
     }
 
