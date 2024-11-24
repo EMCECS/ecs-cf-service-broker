@@ -69,9 +69,14 @@ dependencies {
 
     dependencyManagement {
         dependencies {
-            dependency group: 'org.springframework', name: 'spring-beans', version: springFrameworkVersion
-            dependency group: 'org.springframework', name: 'spring-expression', version: springFrameworkVersion
             dependency group: 'org.springframework', name: 'spring-aop', version: springFrameworkVersion
+            dependency group: 'org.springframework', name: 'spring-beans', version: springFrameworkVersion
+            dependency group: 'org.springframework', name: 'spring-context', version: springFrameworkVersion
+            dependency group: 'org.springframework', name: 'spring-core', version: springFrameworkVersion
+            dependency group: 'org.springframework', name: 'spring-expression', version: springFrameworkVersion
+            dependency group: 'org.springframework', name: 'spring-jcl', version: springFrameworkVersion
+            dependency group: 'org.springframework', name: 'spring-web', version: springFrameworkVersion
+            dependency group: 'org.springframework', name: 'spring-webmvc', version: springFrameworkVersion
         }
     }
 
