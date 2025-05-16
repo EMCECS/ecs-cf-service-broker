@@ -1,5 +1,9 @@
 # ECS Open Service Broker
 
+## NOTICE
+
+***[v2.3.3](https://github.com/EMCECS/ecs-cf-service-broker/releases/tag/2.3.3) is the last release of the ECS Service Broker, no further versions will be released.  Support for the broker will end on May 25, 2025. No support will be provided after this date.***
+
 ## Description
 
 This service broker enables Kubernetes & Cloud Foundry applications to create,
